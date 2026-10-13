@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>音乐创作家 - 导出优化版</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "幼圆", "Microsoft YaHei", "PingFang SC", sans-serif;
+    }
+
+    body {
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 12% 12%, rgba(255, 210, 235, 0.9), transparent 28%),
+            radial-gradient(circle at 88% 20%, rgba(200, 230, 255, 0.9), transparent 30%),
+            radial-gradient(circle at 50% 90%, rgba(230, 210, 255, 0.9), transparent 34%),
+            linear-gradient(180deg, #fff0f9 0%, #e6f2ff 45%, #f3e8ff 100%);
+        position: relative;
+        overflow-x: hidden;
+        padding: 24px 0 70px;
+    }
+
+    /* ===== 童话梦幻装饰 ===== */
+    .deer, .bird, .flower, .star, .cloud, .rainbow {
+        position: absolute;
+        pointer-events: none;
+        user-select: none;
+        z-index: 1;
+    }
+    .deer {
+        font-size: 74px;
+        top: 110px; left: 4%;
+        animation: deerWalk 9s infinite ease-in-out;
+        filter: drop-shadow(0 6px 10px rgba(120, 80, 200, 0.18));
+    }
+    .bird {
+        font-size: 44px;
+        top: 200px; right: 6%;
+        animation: birdFly 7s infinite ease-in-out;
+        filter: drop-shadow(0 4px 8px rgba(120, 80, 200, 0.15));
+    }
+    .flower {
+        font-size: 54px;
+        bottom: 40px; right: 9%;
+        animation: flowerSway 5s infinite ease-in-out;
+        filter: drop-shadow(0 4px 8px rgba(255, 120, 180, 0.2));
+    }
+    .flower2 {
+        font-size: 42px;
+        bottom: 90px; left: 7%;
+        animation: flowerSway 6s infinite ease-in-out reverse;
+    }
+    .cloud {
+        background: rgba(255, 255, 255, 0.74);
+        border-radius: 40px;
+        animation: cloudMove 14s infinite linear;
+    }
+    .cloud1 { width: 110px; height: 30px; top: 60px; left: 30%; }
+    .cloud2 { width: 140px; height: 34px; top: 340px; left: 55%; animation-duration: 18s; }
+    .star {
+        color: #fff3a8;
+        text-shadow: 0 0 10px rgba(255, 240, 160, 0.9);
+        animation: twinkle 3s infinite ease-in-out;
+    }
+    .star1 { top: 90px; right: 28%; font-size: 24px; animation-delay: 0s; }
+    .star2 { top: 260px; left: 18%; font-size: 20px; animation-delay: 1s; }
+    .star3 { top: 420px; right: 42%; font-size: 22px; animation-delay: 2s; }
+    .rainbow {
+        top: 40px; left: 50%;
+        transform: translateX(-50%);
+        width: 320px; height: 160px;
+        border-radius: 160px 160px 0 0;
+        border: 18px solid transparent;
+        border-top-color: #ff9ec7;
+        opacity: 0.35;
+    }
+
+    @keyframes deerWalk {
+        0%, 100% { transform: translateX(0) translateY(0); }
+        50% { transform: translateX(14px) translateY(-6px); }
+    }
+    @keyframes birdFly {
+        0%, 100% { transform: translateX(0) translateY(0); }
+        50% { transform: translateX(-18px) translateY(-14px); }
+    }
+    @keyframes flowerSway {
+        0%, 100% { transform: rotate(-4deg); }
+        50% { transform: rotate(5deg); }
+    }
+    @keyframes cloudMove {
+        0% { transform: translateX(-120px); }
+        100% { transform: translateX(calc(100vw + 120px)); }
+    }
+    @keyframes twinkle {
+        0%, 100% { opacity: 0.4; transform: scale(0.9); }
+        50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    .container {
+        max-width: 1240px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 10;
+    }
+
+    /* ===== 标题 ===== */
+    .title {
+        text-align: center;
+        font-size: 3.1rem;
+        letter-spacing: 4px;
+        color: #7a4bd1;
+        text-shadow: 3px 3px 0 #fff, 0 6px 18px rgba(122, 75, 209, 0.25);
+        margin-bottom: 24px;
+    }
+    .title .sparkle { color: #ffb3d1; margin: 0 6px; }
+
+    /* ===== 白键钢琴区 ===== */
+    .piano-wrap {
+        background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.62));
+        border-radius: 26px;
+        padding: 24px 20px 20px;
+        box-shadow: 0 10px 30px rgba(122, 75, 209, 0.18), inset 0 0 0 1px rgba(255,255,255,0.9);
+        margin-bottom: 22px;
+        border: 2px solid rgba(255, 255, 255, 0.9);
+    }
+    .piano-hint {
+        text-align: center;
+        color: #7a4bd1;
+        font-size: 1rem;
+        margin-bottom: 14px;
+        font-weight: bold;
+    }
+    .piano {
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        height: 210px;
+    }
+    .white-key {
+        flex: 1;
+        max-width: 72px;
+        min-width: 44px;
+        height: 210px;
+        border-radius: 0 0 14px 14px;
+        cursor: pointer;
+        position: relative;
+        transition: transform 0.08s ease, filter 0.12s ease;
+        box-shadow: inset 0 -10px 20px rgba(0,0,0,0.08), 0 6px 14px rgba(122, 75, 209, 0.16);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding-bottom: 18px;
+        user-select: none;
+        border: 2px solid rgba(255,255,255,0.6);
+    }
+    .white-key:hover { transform: translateY(3px); filter: brightness(1.06); }
+    .white-key.active { transform: translateY(6px); filter: brightness(0.86); }
+
+    .n1 { background: linear-gradient(180deg,#ff8aa8,#ff5c7c); }
+    .n2 { background: linear-gradient(180deg,#ffc078,#ffa033); }
+    .n3 { background: linear-gradient(180deg,#ffe66b,#ffd21f); }
+    .n4 { background: linear-gradient(180deg,#9be789,#4dd46a); }
+    .n5 { background: linear-gradient(180deg,#76e3c2,#22c5a0); }
+    .n6 { background: linear-gradient(180deg,#7abfff,#3b82f6); }
+    .n7 { background: linear-gradient(180deg,#b9a7ff,#8b5cf6); }
+
+    .note-text {
+        position: relative;
+        display: inline-block;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #3a2570;
+        text-shadow: 0 1px 0 rgba(255,255,255,0.7);
+        line-height: 1.2;
+    }
+    .low-dot {
+        font-size: 0.7em;
+        position: absolute;
+        bottom: -9px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #3a2570;
+    }
+    .high-dot {
+        font-size: 0.7em;
+        position: absolute;
+        top: -9px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #3a2570;
+    }
+
+    /* ===== 控制行 ===== */
+    .control-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.4fr;
+        gap: 18px;
+        margin-bottom: 22px;
+    }
+    .control-card {
+        background: rgba(255, 255, 255, 0.72);
+        border-radius: 22px;
+        padding: 18px;
+        box-shadow: 0 10px 28px rgba(122, 75, 209, 0.14);
+        border: 2px solid rgba(255,255,255,0.9);
+    }
+    .card-title {
+        text-align: center;
+        color: #7a4bd1;
+        font-size: 1.15rem;
+        margin-bottom: 12px;
+        font-weight: bold;
+    }
+    .time-sig-btns, .tempo-btns, .rhythm-btns {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .sig-btn, .tempo-btn, .rhythm-btn {
+        background: #fff;
+        border: 3px solid transparent;
+        border-radius: 16px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(122, 75, 209, 0.12);
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        user-select: none;
+    }
+    .sig-btn:hover, .tempo-btn:hover, .rhythm-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 18px rgba(122, 75, 209, 0.18);
+    }
+    .sig-btn.active, .tempo-btn.active, .rhythm-btn.active {
+        border-color: #7c3aed;
+        background: #f3e8ff;
+        transform: translateY(-2px) scale(1.04);
+    }
+
+    .sig-btn {
+        width: 74px; height: 74px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+    }
+    .sig-btn .top-num { font-size: 1.7rem; font-weight: 800; color: #5a3d9e; line-height: 1; }
+    .sig-btn .bottom-num {
+        font-size: 1.7rem; font-weight: 800; color: #5a3d9e; line-height: 1;
+        position: relative;
+    }
+    .sig-btn .bottom-num::before {
+        content: ""; position: absolute;
+        top: -6px; left: -8px; right: -8px;
+        height: 2px; background: #5a3d9e;
+    }
+
+    .tempo-btn {
+        flex: 1; min-width: 80px; height: 74px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 4px;
+    }
+    .tempo-btn .tempo-label { font-size: 1rem; font-weight: bold; color: #5a3d9e; }
+    .tempo-btn .tempo-value { font-size: 0.85rem; color: #888; }
+
+    .rhythm-btn {
+        width: 88px; height: 82px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 4px;
+    }
+    .rhythm-icon { font-size: 1.5rem; color: #5a3d9e; font-weight: 800; line-height: 1.2; }
+    .rhythm-label { font-size: 0.78rem; color: #666; }
+    .u-line { text-decoration: underline; text-underline-offset: 4px; }
+    .u-double { text-decoration: underline double; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+    .rest-icon { color: #888; }
+
+    /* ===== 创作区 ===== */
+    .creator-section {
+        background: rgba(255, 255, 255, 0.76);
+        border-radius: 24px;
+        padding: 24px;
+        box-shadow: 0 12px 34px rgba(122, 75, 209, 0.16);
+        border: 2px solid rgba(255,255,255,0.9);
+        margin-bottom: 28px;
+    }
+    .creator-title {
+        text-align: center;
+        color: #7a4bd1;
+        font-size: 1.6rem;
+        margin-bottom: 16px;
+        font-weight: bold;
+    }
+
+    /* 预备拍 */
+    .prebeat-area {
+        position: relative;
+        height: 56px;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding-left: 14px;
+    }
+    .prebeat-label {
+        font-size: 0.95rem;
+        color: #7a4bd1;
+        font-weight: bold;
+        margin-right: 12px;
+    }
+    .prebeat-notes {
+        display: flex;
+        gap: 10px;
+    }
+    .prebeat-note {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #fff;
+        border: 3px solid #cbb9f7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        color: #7a4bd1;
+        font-weight: 800;
+        box-shadow: 0 4px 10px rgba(122, 75, 209, 0.15);
+        transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+    }
+    .prebeat-note.active {
+        transform: scale(1.22);
+        border-color: #7c3aed;
+        background: #f3e8ff;
+        box-shadow: 0 0 0 6px rgba(124, 58, 237, 0.12);
+    }
+
+    .creator-track {
+        background: rgba(255, 255, 255, 0.96);
+        border-radius: 16px;
+        min-height: 180px;
+        position: relative;
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        padding: 28px 24px 28px 100px;
+        border: 2px dashed #cbb9f7;
+        line-height: 62px;
+    }
+    .creator-track::-webkit-scrollbar { height: 10px; }
+    .creator-track::-webkit-scrollbar-thumb { background: #cbb9f7; border-radius: 5px; }
+    .creator-track::-webkit-scrollbar-track { background: #f3efff; border-radius: 5px; }
+
+    .track-time-sig {
+        position: absolute;
+        left: 16px; top: 50%;
+        transform: translateY(-50%);
+        display: flex; flex-direction: column;
+        align-items: center;
+        font-size: 2.2rem; font-weight: 800;
+        color: #3a2570; line-height: 1.1;
+        z-index: 5;
+        background: rgba(255,255,255,0.96);
+        padding: 8px 12px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(122, 75, 209, 0.12);
+    }
+    .track-time-sig .sig-bottom { position: relative; }
+    .track-time-sig .sig-bottom::before {
+        content: ""; position: absolute;
+        top: -5px; left: -8px; right: -8px;
+        height: 2px; background: #3a2570;
+    }
+
+    .measure {
+        display: inline-flex;
+        align-items: center;
+        position: relative;
+        padding-right: 14px;
+        margin-right: 10px;
+        border-right: 2px solid #3a2570;
+        height: 74px;
+    }
+    .measure:last-child { padding-right: 14px; }
+
+    .beat-group {
+        display: inline-flex;
+        align-items: flex-end;
+        justify-content: center;
+        width: 72px;
+        height: 64px;
+        position: relative;
+        margin-right: 4px;
+        padding-bottom: 14px;
+    }
+
+    .track-unit {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 52px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        position: relative;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #2a1a55;
+        flex: 1;
+        box-shadow: inset 0 -4px 0 rgba(0,0,0,0.06);
+    }
+    .track-unit.empty {
+        border: 2px dashed #cbb9f7;
+        background: #f8f4ff;
+        color: #b59bff;
+        font-size: 1.2rem;
+    }
+    .track-unit.rest {
+        color: #7c6bb0;
+        background: #ece7ff;
+    }
+    .track-unit:hover { transform: scale(1.12); z-index: 6; }
+    .track-unit.empty:hover { border-color: #7c3aed; background: #ede9fe; }
+    .track-unit.selected {
+        border-color: #7c3aed;
+        background: #ede9fe;
+        transform: scale(1.14);
+        z-index: 6;
+    }
+
+    .del-btn {
+        position: absolute;
+        top: -8px; right: -8px;
+        width: 20px; height: 20px;
+        background: #ef4444;
+        color: #fff;
+        border-radius: 50%;
+        font-size: 12px;
+        line-height: 20px;
+        text-align: center;
+        font-weight: normal;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+        z-index: 10;
+    }
+    .track-unit:hover .del-btn { opacity: 1; }
+
+    .note-line {
+        position: absolute;
+        bottom: -8px;
+        left: 3px; right: 3px;
+        height: 2px;
+        background: #3a2570;
+    }
+    .note-line.line-second { bottom: -14px; }
+
+    .extend-line {
+        display: inline-block;
+        width: 72px;
+        height: 2px;
+        background: #3a2570;
+        vertical-align: middle;
+        margin: 0 3px;
+    }
+
+    .empty-tip {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        color: #9b8cd4;
+        font-size: 1rem;
+        pointer-events: none;
+        text-align: center;
+        line-height: 1.7;
+    }
+
+    .controls {
+        display: flex;
+        justify-content: center;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+    .ctrl-btn {
+        padding: 13px 30px;
+        border: none;
+        border-radius: 28px;
+        font-size: 1.08rem;
+        cursor: pointer;
+        font-weight: bold;
+        color: #fff;
+        box-shadow: 0 6px 14px rgba(0,0,0,0.14);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .ctrl-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.18); }
+    .btn-play { background: linear-gradient(135deg,#34d399,#10b981); }
+    .btn-stop { background: linear-gradient(135deg,#fbbf24,#f59e0b); }
+    .btn-clear { background: linear-gradient(135deg,#f87171,#ef4444); }
+    .btn-save { background: linear-gradient(135deg,#a78bfa,#8b5cf6); }
+
+    .tips {
+        text-align: center;
+        color: #7a4bd1;
+        margin-top: 16px;
+        font-size: 0.94rem;
+        line-height: 1.7;
+    }
+    .tips strong { color: #5a3d9e; }
+
+    /* ===== 作品展览馆 - 3D梦幻卷轴 ===== */
+    .gallery-section {
+        background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.54));
+        border-radius: 26px;
+        padding: 30px 24px;
+        box-shadow: 0 12px 34px rgba(122, 75, 209, 0.16);
+        border: 2px solid rgba(255,255,255,0.9);
+    }
+    .gallery-title {
+        text-align: center;
+        color: #7a4bd1;
+        font-size: 1.8rem;
+        margin-bottom: 25px;
+        font-weight: bold;
+        text-shadow: 2px 2px 0 #fff;
+    }
+    .gallery-title::before, .gallery-title::after {
+        content: "✦";
+        color: #ffb3d1;
+        margin: 0 12px;
+        font-size: 1.2rem;
+    }
+    .scroll-list {
+        display: flex;
+        gap: 26px;
+        overflow-x: auto;
+        padding: 20px 10px 30px;
+    }
+    .scroll-list::-webkit-scrollbar { height: 10px; }
+    .scroll-list::-webkit-scrollbar-thumb { background: #cbb9f7; border-radius: 5px; }
+
+    .scroll-card {
+        flex-shrink: 0;
+        width: 260px;
+        perspective: 1500px;
+        cursor: default;
+    }
+    .scroll-card-inner {
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.6s ease;
+        transform: rotateY(-15deg);
+    }
+    .scroll-card:hover .scroll-card-inner {
+        transform: rotateY(5deg) translateY(-6px);
+    }
+
+    .scroll-outer {
+        background: linear-gradient(180deg, #fff7d7 0%, #ffe9a8 45%, #ffd76a 100%);
+        border-radius: 20px;
+        padding: 12px;
+        box-shadow:
+            0 16px 35px rgba(255, 180, 80, 0.35),
+            0 0 0 2px rgba(255,255,255,0.8) inset;
+        position: relative;
+        overflow: hidden;
+        border: 3px solid #f6c95c;
+    }
+    .scroll-outer::before, .scroll-outer::after {
+        content: "";
+        position: absolute;
+        left: -6px; right: -6px;
+        height: 22px;
+        background: linear-gradient(90deg,#a65f00,#d98c1a,#a65f00);
+        z-index: 3;
+        border-radius: 12px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    }
+    .scroll-outer::before { top: -4px; }
+    .scroll-outer::after { bottom: -4px; }
+
+    .scroll-body {
+        background: linear-gradient(180deg, #fffbe7 0%, #fff4c8 100%);
+        border-radius: 16px;
+        padding: 32px 18px 24px;
+        min-height: 220px;
+        position: relative;
+        overflow: hidden;
+        border: 2px solid rgba(255,255,255,0.9);
+        transform-origin: left center;
+        animation: scrollOpen 1.2s ease forwards;
+    }
+    .scroll-body::before {
+        content: "";
+        position: absolute;
+        inset: 12px;
+        border: 2px dashed rgba(246, 181, 29, 0.45);
+        border-radius: 12px;
+        pointer-events: none;
+    }
+    @keyframes scrollOpen {
+        0% { transform: scaleX(0.2); opacity: 0; }
+        100% { transform: scaleX(1); opacity: 1; }
+    }
+
+    .card-notes {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        font-size: 2.2rem;
+        color: #a78bfa;
+        margin-bottom: 12px;
+        filter: drop-shadow(0 0 8px rgba(167,139,250,0.45));
+    }
+    .card-notes span { animation: noteFloat 4s infinite ease-in-out; }
+    .card-notes span:nth-child(1) { animation-delay: 0s; }
+    .card-notes span:nth-child(2) { animation-delay: 0.3s; }
+    .card-notes span:nth-child(3) { animation-delay: 0.6s; }
+    .card-notes span:nth-child(4) { animation-delay: 0.9s; }
+    @keyframes noteFloat {
+        0%, 100% { transform: translateY(0) rotate(-4deg); }
+        50% { transform: translateY(-6px) rotate(4deg); }
+    }
+
+    .work-name {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #78350f;
+        text-align: center;
+        margin-bottom: 10px;
+        word-break: break-all;
+    }
+    .work-info {
+        font-size: 0.85rem;
+        color: #92400e;
+        text-align: center;
+        margin-bottom: 12px;
+        background: rgba(255,255,255,0.7);
+        border-radius: 8px;
+        padding: 6px;
+        border: 1px dashed rgba(246, 181, 29, 0.5);
+    }
+    .work-preview {
+        font-size: 0.95rem;
+        color: #6b4423;
+        background: rgba(255,255,255,0.8);
+        border-radius: 10px;
+        padding: 10px;
+        min-height: 60px;
+        max-height: 70px;
+        overflow: hidden;
+        line-height: 1.5;
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 14px;
+        border: 1px dashed rgba(246, 181, 29, 0.5);
+    }
+
+    .card-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .card-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 22px;
+        font-size: 0.95rem;
+        cursor: pointer;
+        font-weight: bold;
+        color: #fff;
+        box-shadow: 0 6px 14px rgba(139,92,246,0.35);
+        transition: transform 0.15s ease;
+    }
+    .card-btn:hover { transform: translateY(-3px); }
+    .btn-mp3 { background: linear-gradient(135deg,#f472b6,#db2777); }
+    .btn-png { background: linear-gradient(135deg,#60a5fa,#3b82f6); }
+    .btn-delete { background: linear-gradient(135deg,#f87171,#ef4444); }
+
+    .empty-gallery {
+        text-align: center;
+        color: #9b8cd4;
+        padding: 50px;
+        width: 100%;
+        font-size: 1.05rem;
+    }
+
+    /* ===== 命名弹窗 ===== */
+    .modal-mask {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(122, 75, 209, 0.42);
+        backdrop-filter: blur(6px);
+        z-index: 200;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal-box {
+        background: #fff;
+        border-radius: 24px;
+        padding: 30px;
+        width: 340px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        text-align: center;
+        border: 3px solid #f3e8ff;
+    }
+    .modal-title {
+        font-size: 1.4rem;
+        color: #7a4bd1;
+        margin-bottom: 20px;
+        font-weight: bold;
+    }
+    .modal-input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #ddd;
+        border-radius: 14px;
+        font-size: 1rem;
+        margin-bottom: 20px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .modal-input:focus { border-color: #7c3aed; }
+    .modal-btns { display: flex; gap: 14px; justify-content: center; }
+    .modal-btn {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 22px;
+        font-size: 1rem;
+        cursor: pointer;
+        font-weight: bold;
+        color: #fff;
+    }
+    .modal-confirm { background: linear-gradient(135deg,#a78bfa,#8b5cf6); }
+    .modal-cancel { background: linear-gradient(135deg,#9ca3af,#6b7280); }
+
+    /* ===== 导出图片模板（隐藏） ===== */
+    #exportTemplate {
+        position: fixed;
+        left: -9999px;
+        top: 0;
+        min-width: 800px;
+        padding: 40px 50px;
+        background:
+            radial-gradient(circle at 20% 20%, rgba(255, 210, 235, 0.9), transparent 40%),
+            radial-gradient(circle at 80% 80%, rgba(200, 230, 255, 0.9), transparent 40%),
+            linear-gradient(180deg, #fff5fa 0%, #eef4ff 50%, #f6eeff 100%);
+        border-radius: 20px;
+        font-family: "幼圆", "Microsoft YaHei", sans-serif;
+        overflow: visible;
+        position: relative;
+    }
+    /* 导出模板漂浮音符装饰 */
+    #exportTemplate .deco-note {
+        position: absolute;
+        color: rgba(167, 139, 250, 0.18);
+        pointer-events: none;
+        user-select: none;
+    }
+    #exportTemplate .dn1 { top: 20px; left: 30px; font-size: 50px; transform: rotate(-15deg); }
+    #exportTemplate .dn2 { top: 60px; right: 60px; font-size: 38px; transform: rotate(12deg); }
+    #exportTemplate .dn3 { bottom: 30px; left: 80px; font-size: 44px; transform: rotate(-8deg); }
+    #exportTemplate .dn4 { bottom: 70px; right: 40px; font-size: 56px; transform: rotate(20deg); }
+    #exportTemplate .dn5 { top: 120px; left: 50%; font-size: 32px; transform: rotate(5deg); }
+    #exportTemplate .dn6 { top: 40px; left: 40%; font-size: 28px; transform: rotate(-10deg); }
+    #exportTemplate .dn7 { bottom: 20px; right: 30%; font-size: 36px; transform: rotate(15deg); }
+
+    #exportTemplate .export-title {
+        text-align: center;
+        font-size: 2rem;
+        color: #7a4bd1;
+        font-weight: bold;
+        margin-bottom: 15px;
+        position: relative;
+        z-index: 2;
+    }
+    #exportTemplate .export-meta {
+        text-align: center;
+        color: #6b46c1;
+        font-size: 1.1rem;
+        margin-bottom: 25px;
+        font-weight: bold;
+        position: relative;
+        z-index: 2;
+    }
+    #exportTemplate .export-score {
+        background: rgba(255,255,255,0.9);
+        border-radius: 16px;
+        padding: 30px 30px 30px 80px;
+        border: 2px dashed #cbb9f7;
+        position: relative;
+        min-height: 120px;
+        white-space: nowrap;
+        overflow: visible;
+        z-index: 2;
+    }
+    #exportTemplate .export-sig {
+        position: absolute;
+        left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 2.4rem;
+        font-weight: 800;
+        color: #3a2570;
+        line-height: 1.1;
+    }
+    #exportTemplate .export-sig .sig-bottom { position: relative; }
+    #exportTemplate .export-sig .sig-bottom::before {
+        content: "";
+        position: absolute;
+        top: -6px; left: -10px; right: -10px;
+        height: 2px;
+        background: #3a2570;
+    }
+    #exportTemplate .export-measure {
+        display: inline-flex;
+        align-items: center;
+        padding-right: 16px;
+        margin-right: 12px;
+        border-right: 2px solid #3a2570;
+        height: 70px;
+    }
+    #exportTemplate .export-beat-group {
+        display: inline-flex;
+        align-items: flex-end;
+        justify-content: center;
+        width: 72px;
+        height: 60px;
+        position: relative;
+        margin-right: 4px;
+        padding-bottom: 12px;
+    }
+    #exportTemplate .export-note {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 48px;
+        border-radius: 8px;
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #2a1a55;
+        flex: 1;
+        position: relative;
+    }
+    #exportTemplate .export-note.rest { color: #7c6bb0; background: #ece7ff; }
+    #exportTemplate .note-line {
+        position: absolute;
+        bottom: -6px;
+        left: 3px; right: 3px;
+        height: 2px;
+        background: #3a2570;
+    }
+    #exportTemplate .note-line.line-second { bottom: -12px; }
+    #exportTemplate .extend-line {
+        display: inline-block;
+        width: 72px;
+        height: 2px;
+        background: #3a2570;
+        vertical-align: middle;
+        margin: 0 3px;
+    }
+    #exportTemplate .export-footer {
+        text-align: right;
+        margin-top: 15px;
+        color: #7a4bd1;
+        font-size: 0.95rem;
+        font-weight: bold;
+        position: relative;
+        z-index: 2;
+    }
+</style>
+</head>
+<body>
+
+<!-- 童话装饰 -->
+<div class="rainbow"></div>
+<div class="cloud cloud1"></div>
+<div class="cloud cloud2"></div>
+<div class="star star1">✦</div>
+<div class="star star2">✧</div>
+<div class="star star3">✦</div>
+<div class="deer">🦌</div>
+<div class="bird">🐦</div>
+<div class="flower">🌸</div>
+<div class="flower flower2">🌷</div>
+
+<div class="container">
+    <h1 class="title"><span class="sparkle">✦</span>音乐创作家<span class="sparkle">✦</span></h1>
+
+    <!-- 钢琴键盘 -->
+    <div class="piano-wrap">
+        <div class="piano-hint">🎹 下方键盘 · 点击琴键填写音符</div>
+        <div class="piano" id="piano"></div>
+    </div>
+
+    <!-- 控制行 -->
+    <div class="control-row">
+        <div class="control-card">
+            <div class="card-title">📏 选择拍号</div>
+            <div class="time-sig-btns" id="sigBtns">
+                <div class="sig-btn" data-beats="2"><span class="top-num">2</span><span class="bottom-num">4</span></div>
+                <div class="sig-btn" data-beats="3"><span class="top-num">3</span><span class="bottom-num">4</span></div>
+                <div class="sig-btn active" data-beats="4"><span class="top-num">4</span><span class="bottom-num">4</span></div>
+            </div>
+        </div>
+
+        <div class="control-card">
+            <div class="card-title">⏱️ 选择速度</div>
+            <div class="tempo-btns" id="tempoBtns">
+                <div class="tempo-btn" data-bpm="40"><span class="tempo-label">慢速</span><span class="tempo-value">♩=40</span></div>
+                <div class="tempo-btn active" data-bpm="66"><span class="tempo-label">中速</span><span class="tempo-value">♩=66</span></div>
+                <div class="tempo-btn" data-bpm="90"><span class="tempo-label">快速</span><span class="tempo-value">♩=90</span></div>
+            </div>
+        </div>
+
+        <div class="control-card">
+            <div class="card-title">🎵 节奏卡片</div>
+            <div class="rhythm-btns" id="rhythmBtns">
+                <div class="rhythm-btn" data-beat="2" data-type="note"><div class="rhythm-icon">X－</div><div class="rhythm-label">二分音符</div></div>
+                <div class="rhythm-btn active" data-beat="1" data-type="note"><div class="rhythm-icon">X</div><div class="rhythm-label">四分音符</div></div>
+                <div class="rhythm-btn" data-beat="0.5" data-type="note"><div class="rhythm-icon"><span class="u-line">X</span></div><div class="rhythm-label">八分音符</div></div>
+                <div class="rhythm-btn" data-beat="0.25" data-type="note"><div class="rhythm-icon"><span class="u-double">X</span></div><div class="rhythm-label">十六分音符</div></div>
+                <div class="rhythm-btn" data-beat="1" data-type="rest"><div class="rhythm-icon rest-icon">0</div><div class="rhythm-label">四分休止</div></div>
+                <div class="rhythm-btn" data-beat="0.5" data-type="rest"><div class="rhythm-icon rest-icon"><span class="u-line">0</span></div><div class="rhythm-label">八分休止</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创作区 -->
+    <div class="creator-section">
+        <div class="creator-title">✨ 旋律创作区 ✨</div>
+
+        <!-- 预备拍 -->
+        <div class="prebeat-area" id="prebeatArea">
+            <div class="prebeat-label">预备拍</div>
+            <div class="prebeat-notes" id="prebeatNotes"></div>
+        </div>
+
+        <div class="creator-track" id="track">
+            <div class="track-time-sig" id="trackTimeSig"><span>4</span><span class="sig-bottom">4</span></div>
+            <div class="empty-tip" id="emptyTip">
+                💡 第一步：选择节奏卡片，点击轨道填充节奏<br>
+                第二步：点击空白♪选中，再点下方琴键填写音高
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="ctrl-btn btn-play" id="playBtn">▶ 试听旋律</button>
+            <button class="ctrl-btn btn-stop" id="stopBtn">■ 停止</button>
+            <button class="ctrl-btn btn-clear" id="clearBtn">🗑 清空重写</button>
+            <button class="ctrl-btn btn-save" id="saveBtn">💾 保存作品</button>
+        </div>
+        <div class="tips">
+            <strong>操作提示：</strong>点击轨道填充节奏 | 点击空白♪填音 | 填完自动跳下一个 | 预备拍后自动播放
+        </div>
+    </div>
+
+    <!-- 作品展览馆 -->
+    <div class="gallery-section">
+        <div class="gallery-title">作品展览馆</div>
+        <div class="scroll-list" id="scrollList">
+            <div class="empty-gallery">还没有作品哦，快去创作你的第一首梦幻旋律吧~</div>
+        </div>
+    </div>
+</div>
+
+<!-- 命名弹窗 -->
+<div class="modal-mask" id="nameModal">
+    <div class="modal-box">
+        <div class="modal-title">给你的作品起个名字吧</div>
+        <input type="text" class="modal-input" id="workName" placeholder="请输入作品名称" maxlength="12">
+        <div class="modal-btns">
+            <button class="modal-btn modal-cancel" id="cancelSave">取消</button>
+            <button class="modal-btn modal-confirm" id="confirmSave">确认保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 导出图片模板（隐藏） -->
+<div id="exportTemplate">
+    <div class="deco-note dn1">♪</div>
+    <div class="deco-note dn2">♫</div>
+    <div class="deco-note dn3">♬</div>
+    <div class="deco-note dn4">♪</div>
+    <div class="deco-note dn5">♫</div>
+    <div class="deco-note dn6">♬</div>
+    <div class="deco-note dn7">♪</div>
+
+    <div class="export-title" id="exportTitle">作品名称</div>
+    <div class="export-meta" id="exportMeta">拍号 · 速度</div>
+    <div class="export-score" id="exportScore">
+        <div class="export-sig" id="exportSig">
+            <span>4</span>
+            <span class="sig-bottom">4</span>
+        </div>
+    </div>
+    <div class="export-footer">♪ 音乐创作家</div>
+</div>
+
+<script>
+// ==================== 音频核心系统 ====================
+let audioCtx = null;
+let activeSourceNodes = [];
+let isPlaying = false;
+let rafId = null;
+
+document.addEventListener('click', () => {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}, { once: true });
+
+function stopAllPlay() {
+    isPlaying = false;
+    if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+    }
+    activeSourceNodes.forEach(node => {
+        try { node.stop(); node.disconnect(); } catch(e) {}
+    });
+    activeSourceNodes = [];
+    document.querySelectorAll('.prebeat-note').forEach(n => n.classList.remove('active'));
+}
+
+function makeNoteNode(freq, startTime, duration) {
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const osc3 = audioCtx.createOscillator();
+    const gain1 = audioCtx.createGain();
+    const gain2 = audioCtx.createGain();
+    const gain3 = audioCtx.createGain();
+    const master = audioCtx.createGain();
+
+    osc1.type = 'triangle';
+    osc2.type = 'sine';
+    osc3.type = 'sine';
+    osc1.frequency.value = freq;
+    osc2.frequency.value = freq * 2;
+    osc3.frequency.value = freq * 3;
+
+    gain1.gain.value = 0.6;
+    gain2.gain.value = 0.25;
+    gain3.gain.value = 0.1;
+
+    const attack = 0.005;
+    const decay = 0.2;
+    const sustain = 0.25;
+    const release = 2.0;
+
+    master.gain.setValueAtTime(0, startTime);
+    master.gain.linearRampToValueAtTime(0.4, startTime + attack);
+    master.gain.linearRampToValueAtTime(0.4 * sustain, startTime + attack + decay);
+    master.gain.setValueAtTime(0.4 * sustain, startTime + duration);
+    master.gain.exponentialRampToValueAtTime(0.001, startTime + duration + release);
+
+    osc1.connect(gain1);
+    osc2.connect(gain2);
+    osc3.connect(gain3);
+    gain1.connect(master);
+    gain2.connect(master);
+    gain3.connect(master);
+    master.connect(audioCtx.destination);
+
+    osc1.start(startTime);
+    osc2.start(startTime);
+    osc3.start(startTime);
+    osc1.stop(startTime + duration + release);
+    osc2.stop(startTime + duration + release);
+    osc3.stop(startTime + duration + release);
+
+    return [osc1, osc2, osc3];
+}
+
+function makeTickNode(startTime, isStrong) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.value = isStrong ? 1200 : 900;
+
+    gain.gain.setValueAtTime(0.001, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.35, startTime + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.08);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + 0.1);
+
+    return [osc];
+}
+
+// ==================== 精准播放引擎 ====================
+function playSequence(rhythmList, bpm, beatsPerMeasure) {
+    stopAllPlay();
+    if (!audioCtx || rhythmList.length === 0) return;
+
+    isPlaying = true;
+    const beatSec = 60 / bpm;
+    const startTime = audioCtx.currentTime + 0.05;
+
+    for (let i = 0; i < beatsPerMeasure; i++) {
+        const t = startTime + i * beatSec;
+        const nodes = makeTickNode(t, i === 0);
+        activeSourceNodes.push(...nodes);
+    }
+
+    let beatOffset = beatsPerMeasure;
+    rhythmList.forEach(unit => {
+        if (unit.type === 'note' && unit.note) {
+            const t = startTime + beatOffset * beatSec;
+            const nodes = makeNoteNode(noteFreq[unit.note], t, unit.beat * beatSec);
+            activeSourceNodes.push(...nodes);
+        }
+        beatOffset += unit.beat;
+    });
+
+    const prebeatNotes = document.querySelectorAll('.prebeat-note');
+    const totalPrebeatSec = beatsPerMeasure * beatSec;
+
+    function syncVisual() {
+        if (!isPlaying) return;
+        const elapsed = audioCtx.currentTime - startTime;
+
+        if (elapsed < totalPrebeatSec) {
+            const idx = Math.floor(elapsed / beatSec);
+            prebeatNotes.forEach((n, i) => {
+                n.classList.toggle('active', i === idx);
+            });
+        } else {
+            prebeatNotes.forEach(n => n.classList.remove('active'));
+        }
+
+        const totalSec = beatOffset * beatSec;
+        if (elapsed >= totalSec + 0.5) {
+            stopAllPlay();
+            return;
+        }
+
+        rafId = requestAnimationFrame(syncVisual);
+    }
+    rafId = requestAnimationFrame(syncVisual);
+}
+
+// ==================== 离线渲染导出MP3 ====================
+function exportMP3(rhythmList, bpm, filename) {
+    const sampleRate = 44100;
+    const beatSec = 60 / bpm;
+
+    let totalBeats = 0;
+    rhythmList.forEach(u => totalBeats += u.beat);
+    const duration = totalBeats * beatSec + 2.5;
+
+    const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, sampleRate * duration, sampleRate);
+
+    let beatOffset = 0;
+    rhythmList.forEach(unit => {
+        if (unit.type === 'note' && unit.note) {
+            const t = beatOffset * beatSec;
+            const freq = noteFreq[unit.note];
+            const dur = unit.beat * beatSec;
+
+            const osc1 = offlineCtx.createOscillator();
+            const osc2 = offlineCtx.createOscillator();
+            const osc3 = offlineCtx.createOscillator();
+            const g1 = offlineCtx.createGain();
+            const g2 = offlineCtx.createGain();
+            const g3 = offlineCtx.createGain();
+            const master = offlineCtx.createGain();
+
+            osc1.type = 'triangle';
+            osc2.type = 'sine';
+            osc3.type = 'sine';
+            osc1.frequency.value = freq;
+            osc2.frequency.value = freq * 2;
+            osc3.frequency.value = freq * 3;
+
+            g1.gain.value = 0.6;
+            g2.gain.value = 0.25;
+            g3.gain.value = 0.1;
+
+            const attack = 0.005;
+            const decay = 0.2;
+            const sustain = 0.25;
+            const release = 2.0;
+
+            master.gain.setValueAtTime(0, t);
+            master.gain.linearRampToValueAtTime(0.4, t + attack);
+            master.gain.linearRampToValueAtTime(0.4 * sustain, t + attack + decay);
+            master.gain.setValueAtTime(0.4 * sustain, t + dur);
+            master.gain.exponentialRampToValueAtTime(0.001, t + dur + release);
+
+            osc1.connect(g1);
+            osc2.connect(g2);
+            osc3.connect(g3);
+            g1.connect(master);
+            g2.connect(master);
+            g3.connect(master);
+            master.connect(offlineCtx.destination);
+
+            osc1.start(t);
+            osc2.start(t);
+            osc3.start(t);
+            osc1.stop(t + dur + release);
+            osc2.stop(t + dur + release);
+            osc3.stop(t + dur + release);
+        }
+        beatOffset += unit.beat;
+    });
+
+    offlineCtx.startRendering().then(buffer => {
+        const mp3encoder = new lamejs.Mp3Encoder(2, sampleRate, 128);
+        const left = buffer.getChannelData(0);
+        const right = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : left;
+        
+        const samples = [];
+        const chunkSize = 1152;
+        for (let i = 0; i < left.length; i += chunkSize) {
+            const leftChunk = left.slice(i, i + chunkSize);
+            const rightChunk = right.slice(i, i + chunkSize);
+            
+            const leftInt = new Int16Array(leftChunk.length);
+            const rightInt = new Int16Array(rightChunk.length);
+            
+            for (let j = 0; j < leftChunk.length; j++) {
+                leftInt[j] = Math.max(-1, Math.min(1, leftChunk[j])) * 32767;
+                rightInt[j] = Math.max(-1, Math.min(1, rightChunk[j])) * 32767;
+            }
+            
+            const mp3buf = mp3encoder.encodeBuffer(leftInt, rightInt);
+            if (mp3buf.length > 0) samples.push(mp3buf);
+        }
+        
+        const endBuf = mp3encoder.flush();
+        if (endBuf.length > 0) samples.push(endBuf);
+
+        const blob = new Blob(samples, { type: 'audio/mp3' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.mp3`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
+// ==================== 基础数据 ====================
+const noteFreq = {
+    'G3': 196.00, 'A3': 220.00, 'B3': 246.94,
+    'C4': 261.63, 'D4': 293.66, 'E4': 329.63,
+    'F4': 349.23, 'G4': 392.00, 'A4': 440.00,
+    'B4': 493.88, 'C5': 523.25, 'D5': 587.33,
+    'E5': 659.25, 'F5': 698.46, 'G5': 783.99
+};
+
+const noteInfo = {
+    'G3': { num: '5', dot: 'low', color: 'n5' },
+    'A3': { num: '6', dot: 'low', color: 'n6' },
+    'B3': { num: '7', dot: 'low', color: 'n7' },
+    'C4': { num: '1', dot: 'none', color: 'n1' },
+    'D4': { num: '2', dot: 'none', color: 'n2' },
+    'E4': { num: '3', dot: 'none', color: 'n3' },
+    'F4': { num: '4', dot: 'none', color: 'n4' },
+    'G4': { num: '5', dot: 'none', color: 'n5' },
+    'A4': { num: '6', dot: 'none', color: 'n6' },
+    'B4': { num: '7', dot: 'none', color: 'n7' },
+    'C5': { num: '1', dot: 'high', color: 'n1' },
+    'D5': { num: '2', dot: 'high', color: 'n2' },
+    'E5': { num: '3', dot: 'high', color: 'n3' },
+    'F5': { num: '4', dot: 'high', color: 'n4' },
+    'G5': { num: '5', dot: 'high', color: 'n5' }
+};
+
+const whiteKeys = [
+    'G3','A3','B3','C4','D4','E4','F4',
+    'G4','A4','B4','C5','D5','E5','F5',
+    'G5'
+];
+
+let BPM = 66;
+let currentBeat = 1;
+let currentType = 'note';
+let beatsPerMeasure = 4;
+let rhythmList = [];
+let selectedUnitIndex = -1;
+let works = [];
+
+// ==================== 工具函数 ====================
+function buildNoteHtml(info) {
+    let html = '<span class="note-text">';
+    if (info.dot === 'low') html += '<span class="low-dot">.</span>';
+    html += info.num;
+    if (info.dot === 'high') html += '<span class="high-dot">.</span>';
+    html += '</span>';
+    return html;
+}
+
+function updateTrackTimeSig() {
+    document.getElementById('trackTimeSig').innerHTML =
+        `<span>${beatsPerMeasure}</span><span class="sig-bottom">4</span>`;
+    renderPrebeat();
+}
+
+function renderPrebeat() {
+    const box = document.getElementById('prebeatNotes');
+    box.innerHTML = '';
+    for (let i = 0; i < beatsPerMeasure; i++) {
+        const n = document.createElement('div');
+        n.className = 'prebeat-note';
+        n.textContent = i + 1;
+        box.appendChild(n);
+    }
+}
+
+// ==================== 渲染钢琴 ====================
+function renderPiano() {
+    const piano = document.getElementById('piano');
+    piano.innerHTML = '';
+    whiteKeys.forEach(note => {
+        const key = document.createElement('div');
+        const info = noteInfo[note];
+        key.className = `white-key ${info.color}`;
+        key.dataset.note = note;
+        key.innerHTML = buildNoteHtml(info);
+        key.addEventListener('mousedown', () => onPianoPress(note));
+        piano.appendChild(key);
+    });
+}
+
+function onPianoPress(note) {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    makeNoteNode(noteFreq[note], t, currentBeat * 60 / BPM);
+
+    if (selectedUnitIndex >= 0 && selectedUnitIndex < rhythmList.length) {
+        const unit = rhythmList[selectedUnitIndex];
+        if (unit.type === 'note' && !unit.note) {
+            unit.note = note;
+            unit.info = noteInfo[note];
+            selectedUnitIndex = findNextEmpty(selectedUnitIndex);
+            renderTrack();
+        }
+    }
+}
+
+function findNextEmpty(from) {
+    for (let i = from + 1; i < rhythmList.length; i++) {
+        if (rhythmList[i].type === 'note' && !rhythmList[i].note) return i;
+    }
+    for (let i = 0; i < from; i++) {
+        if (rhythmList[i].type === 'note' && !rhythmList[i].note) return i;
+    }
+    return -1;
+}
+
+// ==================== 节奏编辑 ====================
+function addRhythm() {
+    rhythmList.push({ type: currentType, beat: currentBeat, note: null, info: null });
+    if (selectedUnitIndex === -1 && currentType === 'note') {
+        selectedUnitIndex = rhythmList.length - 1;
+    }
+    renderTrack();
+}
+
+function deleteUnit(index) {
+    if (index < 0 || index >= rhythmList.length) return;
+    rhythmList.splice(index, 1);
+    if (selectedUnitIndex === index) selectedUnitIndex = -1;
+    else if (selectedUnitIndex > index) selectedUnitIndex--;
+    renderTrack();
+}
+
+// ==================== 渲染轨道 ====================
+function renderTrack() {
+    const track = document.getElementById('track');
+    const emptyTip = document.getElementById('emptyTip');
+    track.querySelectorAll('.measure').forEach(el => el.remove());
+
+    if (rhythmList.length === 0) {
+        emptyTip.style.display = 'block';
+        return;
+    }
+    emptyTip.style.display = 'none';
+
+    const measures = [];
+    let curMeasure = [];
+    let mBeat = 0;
+
+    rhythmList.forEach((item, idx) => {
+        if (mBeat + item.beat > beatsPerMeasure && mBeat > 0) {
+            measures.push([...curMeasure]);
+            curMeasure = [];
+            mBeat = 0;
+        }
+        curMeasure.push({ item, idx });
+        mBeat += item.beat;
+    });
+    if (curMeasure.length > 0) measures.push(curMeasure);
+
+    measures.forEach(measureItems => {
+        const mEl = document.createElement('div');
+        mEl.className = 'measure';
+
+        let groups = [];
+        let curGroup = [];
+        let gBeat = 0;
+
+        measureItems.forEach(({ item, idx }) => {
+            if (item.beat >= 1) {
+                if (curGroup.length > 0) {
+                    groups.push([...curGroup]);
+                    curGroup = [];
+                    gBeat = 0;
+                }
+                groups.push([{ item, idx }]);
+            } else {
+                if (gBeat + item.beat > 1 && gBeat > 0) {
+                    groups.push([...curGroup]);
+                    curGroup = [];
+                    gBeat = 0;
+                }
+                curGroup.push({ item, idx });
+                gBeat += item.beat;
+            }
+        });
+        if (curGroup.length > 0) groups.push(curGroup);
+
+        groups.forEach(group => {
+            const gEl = document.createElement('div');
+            gEl.className = 'beat-group';
+
+            group.forEach(({ item, idx }) => {
+                const uEl = document.createElement('div');
+
+                const del = document.createElement('div');
+                del.className = 'del-btn';
+                del.textContent = '×';
+                del.addEventListener('click', e => {
+                    e.stopPropagation();
+                    if (isPlaying) return;
+                    deleteUnit(idx);
+                });
+
+                if (item.type === 'rest') {
+                    uEl.className = 'track-unit rest';
+                    uEl.textContent = '0';
+                    if (item.beat <= 0.5) {
+                        const l = document.createElement('div');
+                        l.className = 'note-line';
+                        uEl.appendChild(l);
+                    }
+                } else if (item.note) {
+                    uEl.className = `track-unit ${item.info.color}`;
+                    uEl.innerHTML = buildNoteHtml(item.info);
+                    if (item.beat <= 0.5) {
+                        const l = document.createElement('div');
+                        l.className = 'note-line';
+                        uEl.appendChild(l);
+                    }
+                    if (item.beat <= 0.25) {
+                        const l2 = document.createElement('div');
+                        l2.className = 'note-line line-second';
+                        uEl.appendChild(l2);
+                    }
+                } else {
+                    uEl.className = 'track-unit empty';
+                    uEl.textContent = '♪';
+                }
+
+                if (idx === selectedUnitIndex) uEl.classList.add('selected');
+
+                uEl.addEventListener('click', e => {
+                    e.stopPropagation();
+                    if (isPlaying) return;
+                    if (item.type === 'note' && !item.note) {
+                        selectedUnitIndex = idx;
+                        renderTrack();
+                    }
+                });
+
+                uEl.appendChild(del);
+                gEl.appendChild(uEl);
+            });
+
+            mEl.appendChild(gEl);
+
+            if (group.length === 1 && group[0].item.beat > 1 && group[0].item.type === 'note') {
+                const count = Math.floor(group[0].item.beat - 1);
+                for (let i = 0; i < count; i++) {
+                    const l = document.createElement('div');
+                    l.className = 'extend-line';
+                    mEl.appendChild(l);
+                }
+            }
+        });
+
+        track.appendChild(mEl);
+    });
+}
+
+// ==================== 导出乐谱PNG（宽度自适应修复） ====================
+function exportPNG(work) {
+    const tpl = document.getElementById('exportTemplate');
+    const score = document.getElementById('exportScore');
+    
+    // 填充内容
+    document.getElementById('exportTitle').textContent = work.name;
+    document.getElementById('exportMeta').textContent = `${work.beatsPerMeasure}/4拍  ·  ♩ = ${work.bpm}`;
+    document.getElementById('exportSig').innerHTML = 
+        `<span>${work.beatsPerMeasure}</span><span class="sig-bottom">4</span>`;
+
+    // 清空旧乐谱
+    score.querySelectorAll('.export-measure').forEach(el => el.remove());
+
+    // 生成乐谱内容
+    const measures = [];
+    let curM = [];
+    let mBeat = 0;
+    work.rhythmList.forEach(item => {
+        if (mBeat + item.beat > work.beatsPerMeasure && mBeat > 0) {
+            measures.push([...curM]);
+            curM = [];
+            mBeat = 0;
+        }
+        curM.push(item);
+        mBeat += item.beat;
+    });
+    if (curM.length > 0) measures.push(curM);
+
+    measures.forEach(measureItems => {
+        const mEl = document.createElement('div');
+        mEl.className = 'export-measure';
+
+        let groups = [];
+        let curG = [];
+        let gBeat = 0;
+
+        measureItems.forEach(item => {
+            if (item.beat >= 1) {
+                if (curG.length > 0) {
+                    groups.push([...curG]);
+                    curG = [];
+                    gBeat = 0;
+                }
+                groups.push([item]);
+            } else {
+                if (gBeat + item.beat > 1 && gBeat > 0) {
+                    groups.push([...curG]);
+                    curG = [];
+                    gBeat = 0;
+                }
+                curG.push(item);
+                gBeat += item.beat;
+            }
+        });
+        if (curG.length > 0) groups.push(curG);
+
+        groups.forEach(group => {
+            const gEl = document.createElement('div');
+            gEl.className = 'export-beat-group';
+
+            group.forEach(item => {
+                const nEl = document.createElement('div');
+
+                if (item.type === 'rest') {
+                    nEl.className = 'export-note rest';
+                    nEl.textContent = '0';
+                    if (item.beat <= 0.5) {
+                        const l = document.createElement('div');
+                        l.className = 'note-line';
+                        nEl.appendChild(l);
+                    }
+                } else {
+                    nEl.className = `export-note ${item.info.color}`;
+                    nEl.innerHTML = buildNoteHtml(item.info);
+                    if (item.beat <= 0.5) {
+                        const l = document.createElement('div');
+                        l.className = 'note-line';
+                        nEl.appendChild(l);
+                    }
+                    if (item.beat <= 0.25) {
+                        const l2 = document.createElement('div');
+                        l2.className = 'note-line line-second';
+                        nEl.appendChild(l2);
+                    }
+                }
+
+                gEl.appendChild(nEl);
+            });
+
+            mEl.appendChild(gEl);
+
+            if (group.length === 1 && group[0].beat > 1 && group[0].type === 'note') {
+                const count = Math.floor(group[0].beat - 1);
+                for (let i = 0; i < count; i++) {
+                    const l = document.createElement('div');
+                    l.className = 'extend-line';
+                    mEl.appendChild(l);
+                }
+            }
+        });
+
+        score.appendChild(mEl);
+    });
+
+    // ===== 关键修复：自适应宽度 =====
+    // 保存原始样式
+    const originalWidth = tpl.style.width;
+    const originalOverflow = score.style.overflowX;
+
+    // 临时展开内容获取真实宽度
+    score.style.overflowX = 'visible';
+    tpl.style.width = 'auto';
+    
+    // 计算总宽度（内容宽度 + 左侧拍号区 + 左右padding）
+    const contentWidth = score.scrollWidth + 100 + 60;
+    tpl.style.width = Math.max(800, contentWidth) + 'px';
+
+    // 导出图片
+    html2canvas(tpl, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        logging: false
+    }).then(canvas => {
+        const a = document.createElement('a');
+        a.download = `${work.name}_乐谱.png`;
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+
+        // 恢复原始样式
+        tpl.style.width = originalWidth;
+        score.style.overflowX = originalOverflow;
+    });
+}
+
+// ==================== 作品展览馆 ====================
+function loadWorks() {
+    const saved = localStorage.getItem('musicWorks');
+    if (saved) works = JSON.parse(saved);
+    renderGallery();
+}
+
+function saveWork(name) {
+    const work = {
+        id: Date.now(),
+        name: name,
+        bpm: BPM,
+        beatsPerMeasure: beatsPerMeasure,
+        rhythmList: JSON.parse(JSON.stringify(rhythmList))
+    };
+    works.unshift(work);
+    localStorage.setItem('musicWorks', JSON.stringify(works));
+    renderGallery();
+}
+
+function deleteWork(id) {
+    works = works.filter(w => w.id !== id);
+    localStorage.setItem('musicWorks', JSON.stringify(works));
+    renderGallery();
+}
+
+function buildPreviewText(list) {
+    if (!list || list.length === 0) return '空旋律';
+    return list.map(u => {
+        if (u.type === 'rest') return '0';
+        if (!u.note) return '♪';
+        let t = u.info.num;
+        if (u.info.dot === 'low') t = '.' + t;
+        if (u.info.dot === 'high') t += '.';
+        if (u.beat === 0.5) t += '♪';
+        if (u.beat === 0.25) t += '♬';
+        if (u.beat === 2) t += '—';
+        return t;
+    }).join(' ');
+}
+
+function renderGallery() {
+    const list = document.getElementById('scrollList');
+    list.innerHTML = '';
+
+    if (works.length === 0) {
+        list.innerHTML = '<div class="empty-gallery">还没有作品哦，快去创作你的第一首梦幻旋律吧~</div>';
+        return;
+    }
+
+    works.forEach((work, i) => {
+        const card = document.createElement('div');
+        card.className = 'scroll-card';
+        card.innerHTML = `
+            <div class="scroll-card-inner">
+                <div class="scroll-outer">
+                    <div class="scroll-body" style="animation-delay:${i * 0.15}s">
+                        <div class="card-notes">
+                            <span>♪</span><span>♫</span><span>♬</span><span>♪</span>
+                        </div>
+                        <div class="work-name">${work.name}</div>
+                        <div class="work-info">
+                            ${work.beatsPerMeasure}/4拍 · ♩=${work.bpm}
+                        </div>
+                        <div class="work-preview" title="${buildPreviewText(work.rhythmList)}">
+                            ${buildPreviewText(work.rhythmList)}
+                        </div>
+                        <div class="card-actions">
+                            <button class="card-btn btn-mp3" title="导出音频">🎵 音频</button>
+                            <button class="card-btn btn-png" title="导出乐谱">🖼️ 乐谱</button>
+                            <button class="card-btn btn-delete" title="删除">🗑 删除</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        card.querySelector('.btn-mp3').addEventListener('click', e => {
+            e.stopPropagation();
+            exportMP3(work.rhythmList, work.bpm, work.name);
+        });
+
+        card.querySelector('.btn-png').addEventListener('click', e => {
+            e.stopPropagation();
+            exportPNG(work);
+        });
+
+        card.querySelector('.btn-delete').addEventListener('click', e => {
+            e.stopPropagation();
+            if (confirm('确定要删除这个作品吗？')) deleteWork(work.id);
+        });
+
+        list.appendChild(card);
+    });
+}
+
+// ==================== 事件绑定 ====================
+function bindEvents() {
+    document.querySelectorAll('.sig-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.sig-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            beatsPerMeasure = parseInt(btn.dataset.beats);
+            updateTrackTimeSig();
+            renderTrack();
+        });
+    });
+
+    document.querySelectorAll('.tempo-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tempo-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            BPM = parseInt(btn.dataset.bpm);
+        });
+    });
+
+    document.querySelectorAll('.rhythm-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.rhythm-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentBeat = parseFloat(btn.dataset.beat);
+            currentType = btn.dataset.type;
+        });
+    });
+
+    document.getElementById('track').addEventListener('click', e => {
+        if (isPlaying) return;
+        if (e.target.closest('.track-unit')) return;
+        addRhythm();
+    });
+
+    document.getElementById('playBtn').addEventListener('click', () => {
+        if (rhythmList.length === 0) return;
+        playSequence(rhythmList, BPM, beatsPerMeasure);
+    });
+    document.getElementById('stopBtn').addEventListener('click', stopAllPlay);
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        stopAllPlay();
+        rhythmList = [];
+        selectedUnitIndex = -1;
+        renderTrack();
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+        if (rhythmList.length === 0) {
+            alert('先创作一段旋律再保存吧~');
+            return;
+        }
+        document.getElementById('workName').value = '';
+        document.getElementById('nameModal').style.display = 'flex';
+        setTimeout(() => document.getElementById('workName').focus(), 50);
+    });
+
+    document.getElementById('cancelSave').addEventListener('click', () => {
+        document.getElementById('nameModal').style.display = 'none';
+    });
+
+    document.getElementById('confirmSave').addEventListener('click', () => {
+        const name = document.getElementById('workName').value.trim();
+        if (!name) {
+            alert('请输入作品名称');
+            return;
+        }
+        saveWork(name);
+        document.getElementById('nameModal').style.display = 'none';
+        alert('作品已保存到展览馆！');
+    });
+
+    document.getElementById('workName').addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('confirmSave').click();
+    });
+}
+
+// ==================== 初始化 ====================
+window.onload = () => {
+    renderPiano();
+    bindEvents();
+    updateTrackTimeSig();
+    renderTrack();
+    loadWorks();
+};
+</script>
+</body>
+</html>
